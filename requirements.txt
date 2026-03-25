@@ -3,3 +3,7 @@ pandas
 numpy
 matplotlib
 scikit-learn
+librosa
+librosa==0.10.1
+soundfile
+audioread
