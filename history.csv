@@ -1,0 +1,48 @@
+Time,Text,Prediction,Score,Level,Confidence
+23:25:19,why have you not completed your payment yet we have been trying to contact you for days if you don't pay right now strict action will be taken against you give me your card details a immediately,SCAM_CALLS,115,HIGH,95.0
+23:27:21,hello this is from a technical support we detected malware activity on your system your data may be at risk please follow my instructions immediately to fix the is,SCAM_CALLS,100,HIGH,100.0
+23:58:41,hello this is from a technical support we detected malware activity on your system your data may be at risk please follow my instructions immediately to fix the is,SCAM_CALLS,100,HIGH,100.0
+00:04:42,hello i am calling regarding your insurance policy your policy has expired and you may lose all benefits to continue your coverage you need to make an urgent payment please provide your card details to pro,SCAM_CALLS,125,HIGH,87.0
+00:07:08,,NORMAL_CALLS,-5,LOW,68.0
+11:17:58,hello i am really unhappy with the service my order has not been delivered yet even after the expected date i need an update on this as soon as possible,NORMAL_CALLS,-5,LOW,77.0
+11:20:28,oh know your bank account is at risk we detected multiple login attempts from another location if we don't act now your entire balance could be lost please confirm your account details immediately,SCAM_CALLS,140,HIGH,90.0
+11:25:43,,NORMAL_CALLS,-5,LOW,79.0
+11:25:47,,NORMAL_CALLS,-5,LOW,79.0
+11:25:51,,NORMAL_CALLS,-5,LOW,73.0
+11:25:56,,NORMAL_CALLS,-5,LOW,70.0
+11:26:00,,NORMAL_CALLS,-5,LOW,80.0
+11:26:05,,NORMAL_CALLS,-5,LOW,86.0
+11:26:48,why have you not completed your payment yet we have been trying to contact you for days if you don't pay right now strict action will be taken against you give me your card details a immediately,SCAM_CALLS,115,HIGH,95.0
+11:37:59,hello i am really concerned about your account safety there seems to be some unusual activity i don't want you to lose your money can you please help me verify your details quickly,SCAM_CALLS,95,HIGH,90.0
+11:39:03,hello this is from a technical support we detected malware activity on your system your data may be at risk please follow my instructions immediately to fix the is,SCAM_CALLS,100,HIGH,100.0
+14:13:21,why have you not completed your payment yet we have been trying to contact you for days if you don't pay right now strict action will be taken against you give me your card details a immediately,SCAM_CALLS,115,HIGH,95.0
+14:27:22,hi i am calling from a recruitment agency we have shortlisted you for a high paying job opportunity to proceed with your application you need to pay a registration fee once done we will schedule your interview,SCAM_CALLS,50,MEDIUM,83.0
+14:29:03,,NORMAL_CALLS,-5,LOW,76.0
+14:29:53,,NORMAL_CALLS,-5,LOW,80.0
+14:29:58,,NORMAL_CALLS,-5,LOW,77.0
+14:30:03,,NORMAL_CALLS,-5,LOW,76.0
+14:30:08,,NORMAL_CALLS,-5,LOW,87.0
+14:30:13,,NORMAL_CALLS,-5,LOW,77.0
+14:30:17,,NORMAL_CALLS,-5,LOW,76.0
+14:30:22,,NORMAL_CALLS,-5,LOW,75.0
+14:30:27,,NORMAL_CALLS,-5,LOW,77.0
+14:30:31,,NORMAL_CALLS,-5,LOW,55.0
+14:30:58,hello this is from a technical support we detected malware activity on your system your data may be at risk please follow my instructions immediately to fix the is,SCAM_CALLS,100,HIGH,100.0
+14:36:49,,NORMAL_CALLS,-5,LOW,70.0
+14:37:53,,NORMAL_CALLS,-5,LOW,76.0
+14:37:57,,NORMAL_CALLS,-5,LOW,77.0
+14:38:02,,NORMAL_CALLS,-5,LOW,74.0
+14:38:07,,SCAM_CALLS,50,MEDIUM,66.0
+14:38:12,,NORMAL_CALLS,-5,LOW,77.0
+14:38:16,,NORMAL_CALLS,-5,LOW,76.0
+14:38:21,,NORMAL_CALLS,-5,LOW,70.0
+14:38:25,,NORMAL_CALLS,-5,LOW,76.0
+14:38:30,,NORMAL_CALLS,-5,LOW,76.0
+14:38:35,,NORMAL_CALLS,-5,LOW,72.0
+14:38:39,,NORMAL_CALLS,-5,LOW,87.0
+14:38:44,,NORMAL_CALLS,-5,LOW,75.0
+14:38:49,,NORMAL_CALLS,-5,LOW,92.0
+14:38:54,,NORMAL_CALLS,-5,LOW,73.0
+14:38:58,,NORMAL_CALLS,-5,LOW,69.0
+14:39:03,,NORMAL_CALLS,-5,LOW,78.0
+14:39:08,,NORMAL_CALLS,-5,LOW,76.0
