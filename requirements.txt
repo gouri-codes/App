@@ -8,6 +8,5 @@ sounddevice
 flask==2.3.3
 gunicorn==21.2.0
 numpy==1.26.4
-soundfile==0.12.1
 setuptools==68.0.0
 wheel
