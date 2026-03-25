@@ -8,3 +8,5 @@ librosa==0.10.1
 soundfile
 audioread
 sounddevice
+flask
+gunicorn
