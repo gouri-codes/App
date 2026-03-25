@@ -7,25 +7,22 @@ app = Flask(__name__)
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    if "file" not in request.files:
-        return jsonify({"error": "No file uploaded"})
-
-    file = request.files["file"]
-    filepath = "temp.wav"
-    file.save(filepath)
-
     try:
-        # Load audio
+        if "file" not in request.files:
+            return jsonify({"error": "No file uploaded"})
+
+        file = request.files["file"]
+        filepath = "temp.wav"
+        file.save(filepath)
+
+        import librosa
+        import numpy as np
+
         y, sr = librosa.load(filepath, sr=None)
 
-        # Simple feature (example)
         mfcc = np.mean(librosa.feature.mfcc(y=y, sr=sr))
 
-        # Dummy logic (replace with your model)
-        if mfcc > 0:
-            result = "Fraud Call"
-        else:
-            result = "Normal Call"
+        result = "Fraud Call" if mfcc > 0 else "Normal Call"
 
         return jsonify({"prediction": result})
 
@@ -33,8 +30,9 @@ def predict():
         return jsonify({"error": str(e)})
 
     finally:
-        if os.path.exists(filepath):
-            os.remove(filepath)
+        import os
+        if os.path.exists("temp.wav"):
+            os.remove("temp.wav")
 
 if __name__ == "__main__":
     app.run()
