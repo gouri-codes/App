@@ -16,7 +16,7 @@ def predict():
 
     try:
         # Load audio
-        y, sr = librosa.load(filepath)
+        y, sr = librosa.load(filepath, sr=None)
 
         # Simple feature (example)
         mfcc = np.mean(librosa.feature.mfcc(y=y, sr=sr))
