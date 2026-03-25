@@ -10,4 +10,5 @@ audioread
 sounddevice
 flask
 gunicorn
-setuptools
+setuptools==68.0.0
+wheel
