@@ -1,9 +1,13 @@
 from flask import Flask, request, jsonify
-import librosa
 import numpy as np
+import soundfile as sf
 import os
 
 app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "API is running"
 
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -15,14 +19,13 @@ def predict():
         filepath = "temp.wav"
         file.save(filepath)
 
-        import librosa
-        import numpy as np
+        # ✅ Use soundfile instead of librosa
+        data, samplerate = sf.read(filepath)
 
-        y, sr = librosa.load(filepath, sr=None)
+        # Simple feature
+        feature = np.mean(data)
 
-        mfcc = np.mean(librosa.feature.mfcc(y=y, sr=sr))
-
-        result = "Fraud Call" if mfcc > 0 else "Normal Call"
+        result = "Fraud Call" if feature > 0 else "Normal Call"
 
         return jsonify({"prediction": result})
 
@@ -30,7 +33,6 @@ def predict():
         return jsonify({"error": str(e)})
 
     finally:
-        import os
         if os.path.exists("temp.wav"):
             os.remove("temp.wav")
 
