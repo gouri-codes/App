@@ -1,9 +1,13 @@
 from flask import Flask, request, jsonify
 import numpy as np
+import wave
+import pickle
 import os
-import librosa
 
 app = Flask(__name__)
+
+# ✅ Load model
+model, feature_length = pickle.load(open("model.pkl", "rb"))
 
 @app.route("/")
 def home():
@@ -16,31 +20,32 @@ def predict():
             return jsonify({"error": "No file uploaded"})
 
         file = request.files["file"]
-        filepath = "temp_audio"
-
+        filepath = "temp.wav"
         file.save(filepath)
 
-        # ✅ FIX: use librosa (supports .3gp)
-        import numpy as np
+        # ✅ Read WAV properly
+        with wave.open(filepath, 'rb') as wf:
+            frames = wf.readframes(wf.getnframes())
+            data = np.frombuffer(frames, dtype=np.int16)
 
-        with open(filepath, "rb") as f:
-           data = np.frombuffer(f.read(), dtype=np.uint8)
-
-        # simple feature
+        # ✅ Basic feature (MATCH TRAINING STYLE LATER)
         feature = np.mean(data)
 
-        result = "Fraud Call" if feature > 0 else "Normal Call"
+        # ⚠️ IMPORTANT: Create feature vector SAME SIZE as training
+        features = [feature] * feature_length
 
-        return jsonify({"prediction": result})
+        prediction = model.predict([features])[0]
+
+        return jsonify({
+            "prediction": prediction
+        })
 
     except Exception as e:
         return jsonify({"error": str(e)})
 
     finally:
-        if os.path.exists("temp_audio"):
-            os.remove("temp_audio")
-
+        if os.path.exists("temp.wav"):
+            os.remove("temp.wav")
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run()
