@@ -1,8 +1,30 @@
 from flask import Flask, request, jsonify
 import numpy as np
 import os
+import librosa
 
 app = Flask(__name__)
+
+# ---------------------------
+# 🔒 SAFE IMPORTS
+# ---------------------------
+try:
+    from speech import speech_to_text
+except:
+    def speech_to_text(x):
+        return ""
+
+try:
+    from keywords import detect_keywords
+except:
+    def detect_keywords(text):
+        return 0, []
+
+try:
+    from emotion import detect_emotion
+except:
+    def detect_emotion(text):
+        return "neutral", 0
 
 
 @app.route("/")
@@ -10,8 +32,6 @@ def home():
     return "API is running"
 
 
-@app.route("/predict", methods=["POST"])
-@app.route("/predict", methods=["POST"])
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
@@ -22,65 +42,64 @@ def predict():
         filepath = "temp_audio"
         file.save(filepath)
 
-        import numpy as np
-        import soundfile as sf
-
-        try:
-            data, sr = sf.read(filepath)
-        except:
-            return jsonify({
-                "prediction": "UNKNOWN",
-                "text": "Recorded format not supported",
-                "emotion": "neutral",
-                "keywords": []
-            })
+        # 🎧 LOAD AUDIO
+        data, sr = librosa.load(filepath, sr=16000)
 
         if len(data) == 0:
             return jsonify({"error": "Empty audio"})
 
         # ---------------------------
-        # 🎯 BETTER FEATURES
+        # 🎧 AUDIO FEATURES
         # ---------------------------
-        mean = float(np.mean(data))
-        std = float(np.std(data))
-        energy = float(np.sum(data ** 2))
-        max_amp = float(np.max(np.abs(data)))
+        energy = float(np.mean(np.abs(data)))
+        loudness = float(np.max(np.abs(data)))
 
         # ---------------------------
-        # 🤖 IMPROVED DECISION LOGIC
+        # 🧠 SPEECH
         # ---------------------------
-        scam_score = 0
+        text = speech_to_text(filepath)
 
-        if energy > 30:
-            scam_score += 2
-        if std > 0.05:
-            scam_score += 1
-        if max_amp > 0.3:
-            scam_score += 1
+        # ---------------------------
+        # 🔑 KEYWORDS
+        # ---------------------------
+        keyword_score, words = detect_keywords(text)
 
-        if scam_score >= 3:
+        # ---------------------------
+        # 😊 EMOTION
+        # ---------------------------
+        emotion, emotion_score = detect_emotion(text)
+        emotion_score = int(emotion_score)
+
+        # ---------------------------
+        # 🎯 SMART SCORING
+        # ---------------------------
+        score = 0
+
+        if energy > 0.02:
+            score += 20
+
+        if loudness > 0.3:
+            score += 20
+
+        score += keyword_score
+        score += emotion_score
+
+        # ---------------------------
+        # 🚨 FINAL RESULT
+        # ---------------------------
+        if score >= 70:
             prediction = "SCAM_CALLS"
-            emotion = "fear"
-            keywords = ["urgent", "money", "otp"]
-            text = "High risk suspicious call detected"
-
-        elif scam_score == 2:
+        elif score >= 40:
             prediction = "POSSIBLE_SCAM"
-            emotion = "alert"
-            keywords = ["verify", "account"]
-            text = "Moderate risk conversation"
-
         else:
             prediction = "NORMAL_CALL"
-            emotion = "calm"
-            keywords = []
-            text = "Normal conversation"
 
         return jsonify({
             "prediction": prediction,
+            "score": score,
             "text": text,
             "emotion": emotion,
-            "keywords": keywords
+            "keywords": words
         })
 
     except Exception as e:
@@ -89,6 +108,8 @@ def predict():
     finally:
         if os.path.exists("temp_audio"):
             os.remove("temp_audio")
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
