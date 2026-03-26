@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import numpy as np
-import soundfile as sf
 import os
+import librosa
 
 app = Flask(__name__)
 
@@ -16,13 +16,13 @@ def predict():
             return jsonify({"error": "No file uploaded"})
 
         file = request.files["file"]
-        filepath = "temp.wav"
+        filepath = "temp_audio"
+
         file.save(filepath)
 
-        # ✅ Use soundfile instead of librosa
-        data, samplerate = sf.read(filepath)
+        # ✅ FIX: use librosa (supports .3gp)
+        data, samplerate = librosa.load(filepath, sr=None)
 
-        # Simple feature
         feature = np.mean(data)
 
         result = "Fraud Call" if feature > 0 else "Normal Call"
@@ -33,9 +33,8 @@ def predict():
         return jsonify({"error": str(e)})
 
     finally:
-        if os.path.exists("temp.wav"):
-            os.remove("temp.wav")
+        if os.path.exists("temp_audio"):
+            os.remove("temp_audio")
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run()
