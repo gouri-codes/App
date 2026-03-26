@@ -23,6 +23,7 @@ def home():
 
 
 @app.route("/predict", methods=["POST"])
+@app.route("/predict", methods=["POST"])
 def predict():
     try:
         if "file" not in request.files:
@@ -33,14 +34,14 @@ def predict():
         file.save(filepath)
 
         # ---------------------------
-        # 🎧 LOAD AUDIO (ALL FORMATS)
+        # 🎧 LOAD AUDIO (SAFE)
         # ---------------------------
         try:
-            # Try WAV first
+            import soundfile as sf
             data, sr = sf.read(filepath)
         except:
             try:
-                # Fallback for 3gp/mp4 (Android recordings)
+                import librosa
                 data, sr = librosa.load(filepath, sr=16000)
             except Exception as e:
                 return jsonify({"error": "Audio read failed: " + str(e)})
@@ -49,7 +50,7 @@ def predict():
             return jsonify({"error": "Empty audio"})
 
         # ---------------------------
-        # 🎯 BASIC AUDIO FEATURES
+        # 🎯 BASIC FEATURES
         # ---------------------------
         mean = float(np.mean(data))
         std = float(np.std(data))
@@ -60,48 +61,43 @@ def predict():
         # ---------------------------
         try:
             text = speech_to_text(filepath)
-        except:
+        except Exception as e:
             text = ""
+            print("Speech error:", e)
 
         # ---------------------------
-        # 🔑 KEYWORD DETECTION
+        # 🔑 KEYWORDS (SAFE)
         # ---------------------------
         try:
             keyword_score, words = detect_keywords(text) if text else (0, [])
-        except:
+        except Exception as e:
             keyword_score, words = 0, []
+            print("Keyword error:", e)
 
         # ---------------------------
-        # 😊 EMOTION DETECTION
+        # 😊 EMOTION (SAFE)
         # ---------------------------
         try:
             emotion, emotion_score = detect_emotion(text) if text else ("neutral", 0)
             emotion_score = int(emotion_score)
-        except:
+        except Exception as e:
             emotion, emotion_score = "neutral", 0
+            print("Emotion error:", e)
 
         # ---------------------------
-        # 🤖 COMBINE FEATURES
-        # ---------------------------
-        features = audio_features + [keyword_score, emotion_score]
-
-        # Adjust feature size for model
-        if len(features) < feature_length:
-            features += [0] * (feature_length - len(features))
-        elif len(features) > feature_length:
-            features = features[:feature_length]
-
-        # ---------------------------
-        # 🔮 PREDICTION
+        # 🤖 MODEL (SAFE)
         # ---------------------------
         try:
+            features = audio_features + [keyword_score, emotion_score]
+
+            if len(features) < feature_length:
+                features += [0] * (feature_length - len(features))
+
             prediction = model.predict([features])[0]
-        except:
+        except Exception as e:
+            print("Model error:", e)
             prediction = "UNKNOWN"
 
-        # ---------------------------
-        # ✅ FINAL RESPONSE
-        # ---------------------------
         return jsonify({
             "prediction": str(prediction),
             "text": text,
@@ -110,12 +106,11 @@ def predict():
         })
 
     except Exception as e:
-        return jsonify({"error": str(e)})
+        return jsonify({"error": "Server crashed: " + str(e)})
 
     finally:
         if os.path.exists("temp_audio"):
             os.remove("temp_audio")
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
