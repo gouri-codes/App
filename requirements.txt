@@ -12,3 +12,5 @@ setuptools==68.0.0
 wheel
 librosa 
 soundfile
+speechrecognition
+pydub
