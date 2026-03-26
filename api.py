@@ -33,6 +33,7 @@ def home():
 
 
 @app.route("/predict", methods=["POST"])
+@app.route("/predict", methods=["POST"])
 def predict():
     try:
         if "file" not in request.files:
@@ -42,54 +43,57 @@ def predict():
         filepath = "temp_audio"
         file.save(filepath)
 
-        # 🎧 LOAD AUDIO
-        data, sr = librosa.load(filepath, sr=16000)
+        import numpy as np
+        import soundfile as sf
+
+        # 🔥 FAST LOAD (no librosa)
+        try:
+            data, sr = sf.read(filepath)
+        except:
+            return jsonify({"error": "Audio format not supported"})
 
         if len(data) == 0:
             return jsonify({"error": "Empty audio"})
 
-        # ---------------------------
-        # 🎧 AUDIO FEATURES
-        # ---------------------------
+        # 🎧 SIMPLE FEATURES (FAST)
         energy = float(np.mean(np.abs(data)))
         loudness = float(np.max(np.abs(data)))
 
-        # ---------------------------
-        # 🧠 SPEECH
-        # ---------------------------
-        text = speech_to_text(filepath)
+        # 🧠 SAFE TEXT
+        try:
+            text = speech_to_text(filepath)
+        except:
+            text = ""
 
-        # ---------------------------
-        # 🔑 KEYWORDS
-        # ---------------------------
-        keyword_score, words = detect_keywords(text)
+        # 🔑 SAFE KEYWORDS
+        try:
+            keyword_score, words = detect_keywords(text)
+        except:
+            keyword_score, words = 0, []
 
-        # ---------------------------
-        # 😊 EMOTION
-        # ---------------------------
-        emotion, emotion_score = detect_emotion(text)
-        emotion_score = int(emotion_score)
+        # 😊 SAFE EMOTION
+        try:
+            emotion, emotion_score = detect_emotion(text)
+            emotion_score = int(emotion_score)
+        except:
+            emotion, emotion_score = "neutral", 0
 
-        # ---------------------------
-        # 🎯 SMART SCORING
-        # ---------------------------
+        # 🎯 SCORING
         score = 0
 
-        if energy > 0.02:
+        if energy > 0.01:
             score += 20
 
-        if loudness > 0.3:
+        if loudness > 0.2:
             score += 20
 
         score += keyword_score
         score += emotion_score
 
-        # ---------------------------
         # 🚨 FINAL RESULT
-        # ---------------------------
-        if score >= 70:
+        if score >= 60:
             prediction = "SCAM_CALLS"
-        elif score >= 40:
+        elif score >= 30:
             prediction = "POSSIBLE_SCAM"
         else:
             prediction = "NORMAL_CALL"
