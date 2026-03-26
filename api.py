@@ -1,20 +1,8 @@
 from flask import Flask, request, jsonify
 import numpy as np
-import pickle
 import os
-import librosa
-import soundfile as sf
-
-# ML modules
-from emotion import detect_emotion
-from feature_extraction import extract_features
-from speech import speech_to_text
-from keywords import detect_keywords
 
 app = Flask(__name__)
-
-# ✅ Load model once
-model, feature_length = pickle.load(open("model.pkl", "rb"))
 
 
 @app.route("/")
@@ -22,8 +10,6 @@ def home():
     return "API is running"
 
 
-@app.route("/predict", methods=["POST"])
-@app.route("/predict", methods=["POST"])
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
@@ -34,28 +20,46 @@ def predict():
         filepath = "temp_audio"
         file.save(filepath)
 
-        import librosa
-        import numpy as np
+        # ---------------------------
+        # 🎧 SAFE AUDIO LOADING
+        # ---------------------------
+        try:
+            import soundfile as sf
+            data, sr = sf.read(filepath)
 
-        # 🔥 FORCE SIMPLE LOAD ONLY
-        data, sr = librosa.load(filepath, sr=16000)
+        except Exception as e:
+            # 🔥 If recording file (3gp) → skip processing safely
+            return jsonify({
+                "prediction": "UNKNOWN",
+                "text": "Recorded format not supported",
+                "emotion": "neutral",
+                "keywords": []
+            })
 
+        # ---------------------------
+        # 🎯 SIMPLE FEATURE (FAST)
+        # ---------------------------
         if len(data) == 0:
             return jsonify({"error": "Empty audio"})
 
         mean = float(np.mean(data))
 
-        # 🔥 SIMPLE RULE (NO ML)
+        # ---------------------------
+        # 🤖 SIMPLE PREDICTION (DEMO SAFE)
+        # ---------------------------
         if abs(mean) > 0.01:
             prediction = "SCAM_CALLS"
         else:
             prediction = "NORMAL_CALL"
 
+        # ---------------------------
+        # ✅ FINAL RESPONSE
+        # ---------------------------
         return jsonify({
             "prediction": prediction,
-            "text": "demo text",
+            "text": "Demo analysis complete",
             "emotion": "neutral",
-            "keywords": []
+            "keywords": ["sample"]
         })
 
     except Exception as e:
@@ -64,6 +68,7 @@ def predict():
     finally:
         if os.path.exists("temp_audio"):
             os.remove("temp_audio")
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
