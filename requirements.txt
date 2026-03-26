@@ -13,5 +13,6 @@ wheel
 librosa 
 soundfile
 speechrecognition
-pydub
 textblob
+pydub
+ffmpeg-python
