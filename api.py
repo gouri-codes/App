@@ -21,9 +21,12 @@ def predict():
         file.save(filepath)
 
         # ✅ FIX: use librosa (supports .3gp)
-        data, samplerate = librosa.load(filepath, sr=8000)
-        data = data[:8000]
+        import numpy as np
 
+        with open(filepath, "rb") as f:
+           data = np.frombuffer(f.read(), dtype=np.uint8)
+
+        # simple feature
         feature = np.mean(data)
 
         result = "Fraud Call" if feature > 0 else "Normal Call"
