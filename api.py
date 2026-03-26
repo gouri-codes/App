@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import numpy as np
 import pickle
 import os
-import wave
+import librosa
 
 # ML modules
 from emotion import detect_emotion
@@ -12,68 +12,92 @@ from keywords import detect_keywords
 
 app = Flask(__name__)
 
+# Load model
 model, feature_length = pickle.load(open("model.pkl", "rb"))
+
 
 @app.route("/")
 def home():
     return "API is running"
 
-# 🔥 FAST MODE (NO TIMEOUT)
+
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
+        if "file" not in request.files:
+            return jsonify({"error": "No file uploaded"})
+
         file = request.files["file"]
-        filepath = "temp.wav"
+        filepath = "temp_audio"
         file.save(filepath)
 
-        with wave.open(filepath, 'rb') as wf:
-            frames = wf.readframes(wf.getnframes())
-            data = np.frombuffer(frames, dtype=np.int16)
+        # ---------------------------
+        # 🔥 FAST AUDIO LOAD (ALL FORMATS)
+        # ---------------------------
+        try:
+            data, sr = librosa.load(filepath, sr=16000)
+        except:
+            return jsonify({"error": "Audio format not supported"})
 
-        mean = np.mean(data)
-        std = np.std(data)
+        if len(data) == 0:
+            return jsonify({"error": "Empty audio"})
 
-        features = [mean, std]
+        # ---------------------------
+        # 🎧 BASIC AUDIO FEATURES (FAST)
+        # ---------------------------
+        mean = float(np.mean(data))
+        std = float(np.std(data))
+        audio_features = [mean, std]
 
+        # ---------------------------
+        # 🧠 SPEECH TO TEXT (SAFE)
+        # ---------------------------
+        try:
+            text = speech_to_text(filepath)
+        except:
+            text = ""
+
+        # ---------------------------
+        # 🔑 KEYWORDS (SAFE)
+        # ---------------------------
+        try:
+            keyword_score, words = detect_keywords(text) if text else (0, [])
+        except:
+            keyword_score, words = 0, []
+
+        # ---------------------------
+        # 😊 EMOTION (SAFE)
+        # ---------------------------
+        try:
+            emotion, emotion_score = detect_emotion(text) if text else ("neutral", 0)
+            emotion_score = int(emotion_score)
+        except:
+            emotion, emotion_score = "neutral", 0
+
+        # ---------------------------
+        # 🎯 COMBINE FEATURES
+        # ---------------------------
+        features = audio_features + [keyword_score, emotion_score]
+
+        # Fix length for model
         if len(features) < feature_length:
             features += [0] * (feature_length - len(features))
+        elif len(features) > feature_length:
+            features = features[:feature_length]
 
-        prediction = model.predict([features])[0]
+        # ---------------------------
+        # 🤖 MODEL PREDICTION (SAFE)
+        # ---------------------------
+        try:
+            prediction = model.predict([features])[0]
+        except:
+            prediction = "UNKNOWN"
 
-        return jsonify({"prediction": str(prediction)})
-
-    except Exception as e:
-        return jsonify({"error": str(e)})
-
-    finally:
-        if os.path.exists("temp.wav"):
-            os.remove("temp.wav")
-
-
-# 🧠 FULL ANALYSIS (KEYWORDS + EMOTION)
-@app.route("/analyze", methods=["POST"])
-def analyze():
-    try:
-        file = request.files["file"]
-        filepath = "temp.wav"
-        file.save(filepath)
-
-        # FULL PIPELINE
-        audio_features = extract_features(filepath)
-        text = speech_to_text(filepath)
-
-        if text.strip() == "":
-            return jsonify({"error": "No speech detected"})
-
-        keyword_score, words = detect_keywords(text)
-        emotion, emotion_score = detect_emotion(text)
-
-        features = list(audio_features) + [keyword_score, int(emotion_score)]
-
-        prediction = model.predict([features])[0]
-
+        # ---------------------------
+        # ✅ FINAL RESPONSE
+        # ---------------------------
         return jsonify({
-            "prediction": prediction,
+            "prediction": str(prediction),
             "text": text,
             "emotion": emotion,
             "keywords": words
@@ -83,8 +107,8 @@ def analyze():
         return jsonify({"error": str(e)})
 
     finally:
-        if os.path.exists("temp.wav"):
-            os.remove("temp.wav")
+        if os.path.exists("temp_audio"):
+            os.remove("temp_audio")
 
 
 if __name__ == "__main__":
