@@ -4,6 +4,7 @@ import pickle
 import os
 import librosa
 
+
 # ML modules
 from emotion import detect_emotion
 from feature_extraction import extract_features
@@ -34,13 +35,13 @@ def predict():
         # ---------------------------
         # 🔥 FAST AUDIO LOAD (ALL FORMATS)
         # ---------------------------
-        try:
-            data, sr = librosa.load(filepath, sr=16000)
-        except:
-            return jsonify({"error": "Audio format not supported"})
+        import soundfile as sf
 
-        if len(data) == 0:
-            return jsonify({"error": "Empty audio"})
+        try:
+            data, sr = sf.read(filepath, dtype='float32')
+        except Exception as e:
+            return jsonify({"error": "Audio read failed: " + str(e)})        
+       
 
         # ---------------------------
         # 🎧 BASIC AUDIO FEATURES (FAST)
@@ -109,6 +110,8 @@ def predict():
     finally:
         if os.path.exists("temp_audio"):
             os.remove("temp_audio")
+        if os.path.exists("converted.wav"):
+            os.remove("converted.wav")
 
 
 if __name__ == "__main__":
