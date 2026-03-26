@@ -3,7 +3,7 @@ import numpy as np
 import pickle
 import os
 import librosa
-
+import soundfile as sf
 
 # ML modules
 from emotion import detect_emotion
@@ -13,7 +13,7 @@ from keywords import detect_keywords
 
 app = Flask(__name__)
 
-# Load model
+# ✅ Load model once
 model, feature_length = pickle.load(open("model.pkl", "rb"))
 
 
@@ -33,18 +33,23 @@ def predict():
         file.save(filepath)
 
         # ---------------------------
-        # 🔥 FAST AUDIO LOAD (ALL FORMATS)
+        # 🎧 LOAD AUDIO (ALL FORMATS)
         # ---------------------------
-        import soundfile as sf
-
         try:
-            data, sr = sf.read(filepath, dtype='float32')
-        except Exception as e:
-            return jsonify({"error": "Audio read failed: " + str(e)})        
-       
+            # Try WAV first
+            data, sr = sf.read(filepath)
+        except:
+            try:
+                # Fallback for 3gp/mp4 (Android recordings)
+                data, sr = librosa.load(filepath, sr=16000)
+            except Exception as e:
+                return jsonify({"error": "Audio read failed: " + str(e)})
+
+        if len(data) == 0:
+            return jsonify({"error": "Empty audio"})
 
         # ---------------------------
-        # 🎧 BASIC AUDIO FEATURES (FAST)
+        # 🎯 BASIC AUDIO FEATURES
         # ---------------------------
         mean = float(np.mean(data))
         std = float(np.std(data))
@@ -59,7 +64,7 @@ def predict():
             text = ""
 
         # ---------------------------
-        # 🔑 KEYWORDS (SAFE)
+        # 🔑 KEYWORD DETECTION
         # ---------------------------
         try:
             keyword_score, words = detect_keywords(text) if text else (0, [])
@@ -67,7 +72,7 @@ def predict():
             keyword_score, words = 0, []
 
         # ---------------------------
-        # 😊 EMOTION (SAFE)
+        # 😊 EMOTION DETECTION
         # ---------------------------
         try:
             emotion, emotion_score = detect_emotion(text) if text else ("neutral", 0)
@@ -76,18 +81,18 @@ def predict():
             emotion, emotion_score = "neutral", 0
 
         # ---------------------------
-        # 🎯 COMBINE FEATURES
+        # 🤖 COMBINE FEATURES
         # ---------------------------
         features = audio_features + [keyword_score, emotion_score]
 
-        # Fix length for model
+        # Adjust feature size for model
         if len(features) < feature_length:
             features += [0] * (feature_length - len(features))
         elif len(features) > feature_length:
             features = features[:feature_length]
 
         # ---------------------------
-        # 🤖 MODEL PREDICTION (SAFE)
+        # 🔮 PREDICTION
         # ---------------------------
         try:
             prediction = model.predict([features])[0]
@@ -110,8 +115,6 @@ def predict():
     finally:
         if os.path.exists("temp_audio"):
             os.remove("temp_audio")
-        if os.path.exists("converted.wav"):
-            os.remove("converted.wav")
 
 
 if __name__ == "__main__":
