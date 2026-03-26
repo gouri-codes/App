@@ -21,7 +21,8 @@ def predict():
         file.save(filepath)
 
         # ✅ FIX: use librosa (supports .3gp)
-        data, samplerate = librosa.load(filepath, sr=None)
+        data, samplerate = librosa.load(filepath, sr=8000)
+        data = data[:8000]
 
         feature = np.mean(data)
 
