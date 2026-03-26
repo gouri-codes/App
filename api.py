@@ -24,6 +24,7 @@ def home():
 
 @app.route("/predict", methods=["POST"])
 @app.route("/predict", methods=["POST"])
+@app.route("/predict", methods=["POST"])
 def predict():
     try:
         if "file" not in request.files:
@@ -33,80 +34,32 @@ def predict():
         filepath = "temp_audio"
         file.save(filepath)
 
-        # ---------------------------
-        # 🎧 LOAD AUDIO (SAFE)
-        # ---------------------------
-        try:
-            import soundfile as sf
-            data, sr = sf.read(filepath)
-        except:
-            try:
-                import librosa
-                data, sr = librosa.load(filepath, sr=16000)
-            except Exception as e:
-                return jsonify({"error": "Audio read failed: " + str(e)})
+        import librosa
+        import numpy as np
+
+        # 🔥 FORCE SIMPLE LOAD ONLY
+        data, sr = librosa.load(filepath, sr=16000)
 
         if len(data) == 0:
             return jsonify({"error": "Empty audio"})
 
-        # ---------------------------
-        # 🎯 BASIC FEATURES
-        # ---------------------------
         mean = float(np.mean(data))
-        std = float(np.std(data))
-        audio_features = [mean, std]
 
-        # ---------------------------
-        # 🧠 SPEECH TO TEXT (SAFE)
-        # ---------------------------
-        try:
-            text = speech_to_text(filepath)
-        except Exception as e:
-            text = ""
-            print("Speech error:", e)
-
-        # ---------------------------
-        # 🔑 KEYWORDS (SAFE)
-        # ---------------------------
-        try:
-            keyword_score, words = detect_keywords(text) if text else (0, [])
-        except Exception as e:
-            keyword_score, words = 0, []
-            print("Keyword error:", e)
-
-        # ---------------------------
-        # 😊 EMOTION (SAFE)
-        # ---------------------------
-        try:
-            emotion, emotion_score = detect_emotion(text) if text else ("neutral", 0)
-            emotion_score = int(emotion_score)
-        except Exception as e:
-            emotion, emotion_score = "neutral", 0
-            print("Emotion error:", e)
-
-        # ---------------------------
-        # 🤖 MODEL (SAFE)
-        # ---------------------------
-        try:
-            features = audio_features + [keyword_score, emotion_score]
-
-            if len(features) < feature_length:
-                features += [0] * (feature_length - len(features))
-
-            prediction = model.predict([features])[0]
-        except Exception as e:
-            print("Model error:", e)
-            prediction = "UNKNOWN"
+        # 🔥 SIMPLE RULE (NO ML)
+        if abs(mean) > 0.01:
+            prediction = "SCAM_CALLS"
+        else:
+            prediction = "NORMAL_CALL"
 
         return jsonify({
-            "prediction": str(prediction),
-            "text": text,
-            "emotion": emotion,
-            "keywords": words
+            "prediction": prediction,
+            "text": "demo text",
+            "emotion": "neutral",
+            "keywords": []
         })
 
     except Exception as e:
-        return jsonify({"error": "Server crashed: " + str(e)})
+        return jsonify({"error": str(e)})
 
     finally:
         if os.path.exists("temp_audio"):
