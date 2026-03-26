@@ -14,6 +14,7 @@ from speech import speech_to_text
 from keywords import detect_keywords
 from emotion import detect_emotion
 from feature_extraction import extract_features
+import textblob
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="SOC Dashboard", layout="wide")
