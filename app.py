@@ -1,8 +1,7 @@
 import streamlit as st
 import pickle
 import numpy as np
-import librosa
-import librosa.display
+from scipy.io import wavfile
 import matplotlib.pyplot as plt
 from scipy.io.wavfile import write
 import time
@@ -99,19 +98,19 @@ def show_metric(title, value, icon_name ,color):
     """, unsafe_allow_html=True)
 
 def plot_waveform(audio_path):
-    y, sr = librosa.load(audio_path)
+    sr, y = wavfile.read(audio_path)
     fig, ax = plt.subplots()
-    librosa.display.waveshow(y, sr=sr, ax=ax)
+    ax.plot(y)
     st.pyplot(fig)
 
-def plot_spectrogram(audio_path):
-    y, sr = librosa.load(audio_path)
-    S = librosa.stft(y)
-    S_db = librosa.amplitude_to_db(abs(S))
-    fig, ax = plt.subplots()
-    img = librosa.display.specshow(S_db, sr=sr, x_axis='time', y_axis='hz', ax=ax)
-    fig.colorbar(img, ax=ax)
-    st.pyplot(fig)
+#def plot_spectrogram(audio_path):
+ #   y, sr = librosa.load(audio_path)
+ #   S = librosa.stft(y)
+ #   S_db = librosa.amplitude_to_db(abs(S))
+ #   fig, ax = plt.subplots()
+ #   img = librosa.display.specshow(S_db, sr=sr, x_axis='time', y_axis='hz', ax=ax)
+ #   fig.colorbar(img, ax=ax)
+ #   st.pyplot(fig)
 
 def calculate_threat(keyword_score, emotion_score, prediction):
     score = keyword_score + emotion_score
