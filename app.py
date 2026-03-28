@@ -17,6 +17,12 @@ import textblob
 from streamlit_webrtc import webrtc_streamer, AudioProcessorBase
 import av
 
+RTC_CONFIGURATION = {
+    "iceServers": [
+        {"urls": ["stun:stun.l.google.com:19302"]}
+    ]
+}
+
 if "audio_path" not in st.session_state:
     st.session_state.audio_path = None
 # ---------------- PAGE CONFIG ----------------
@@ -125,9 +131,10 @@ def calculate_threat(keyword_score, emotion_score, prediction):
 def record_audio(filename="recorded.wav", duration=5):
 
     webrtc_ctx = webrtc_streamer(
-        key="record",
-        audio_processor_factory=AudioProcessor,
-        media_stream_constraints={"audio": True, "video": False},
+       key="record",
+       audio_processor_factory=AudioProcessor,
+       rtc_configuration=RTC_CONFIGURATION,
+       media_stream_constraints={"audio": True, "video": False},
     )
 
     if st.button("Stop Recording"):
@@ -148,9 +155,10 @@ def record_audio(filename="recorded.wav", duration=5):
 
 def record_chunk(filename="temp.wav", duration=2):
     webrtc_ctx = webrtc_streamer(
-        key="live",
-        audio_processor_factory=AudioProcessor,
-        media_stream_constraints={"audio": True, "video": False},
+       key="live",
+       audio_processor_factory=AudioProcessor,
+       rtc_configuration=RTC_CONFIGURATION,
+       media_stream_constraints={"audio": True, "video": False},
     )
 
     if webrtc_ctx.audio_processor:
