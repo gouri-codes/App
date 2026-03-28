@@ -19,3 +19,6 @@ numpy
 textblob
 pydub
 ffmpeg-python
+aiortc==1.6.0
+aioice==0.7.6
+scipy
