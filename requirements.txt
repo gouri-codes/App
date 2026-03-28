@@ -13,6 +13,9 @@ wheel
 librosa 
 soundfile
 speechrecognition
+streamlit-webrtc==0.47.1
+av
+numpy
 textblob
 pydub
 ffmpeg-python
