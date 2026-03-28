@@ -4,7 +4,6 @@ import numpy as np
 import librosa
 import librosa.display
 import matplotlib.pyplot as plt
-import sounddevice as sd
 from scipy.io.wavfile import write
 import time
 import streamlit.components.v1 as components
@@ -15,7 +14,11 @@ from keywords import detect_keywords
 from emotion import detect_emotion
 from feature_extraction import extract_features
 import textblob
+from streamlit_webrtc import webrtc_streamer, AudioProcessorBase
+import av
 
+if "audio_path" not in st.session_state:
+    st.session_state.audio_path = None
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="SOC Dashboard", layout="wide")
 
@@ -62,6 +65,14 @@ Real-Time Threat Intelligence System
 </p>
 <hr style='border:1px solid #00FFAA'>
 """, unsafe_allow_html=True)
+
+class AudioProcessor(AudioProcessorBase):
+    def __init__(self):
+        self.audio_data = []
+
+    def recv(self, frame: av.AudioFrame):
+        self.audio_data.append(frame.to_ndarray())
+        return frame
 
 # ---------------- FUNCTIONS ----------------
 def show_metric(title, value, icon_name ,color):
@@ -112,16 +123,53 @@ def calculate_threat(keyword_score, emotion_score, prediction):
         return score, "LOW"
 
 def record_audio(filename="recorded.wav", duration=5):
-    audio = sd.rec(int(duration * 44100), samplerate=44100, channels=1)
-    sd.wait()
-    write(filename, 44100, audio)
-    return filename
+
+    webrtc_ctx = webrtc_streamer(
+        key="record",
+        audio_processor_factory=AudioProcessor,
+        media_stream_constraints={"audio": True, "video": False},
+    )
+
+    if st.button("Stop Recording"):
+        if webrtc_ctx.audio_processor:
+            audio_chunks = webrtc_ctx.audio_processor.audio_data
+
+            if len(audio_chunks) > 0:
+                audio_np = np.concatenate(audio_chunks, axis=0)
+                audio_np = audio_np.flatten()
+                audio_np = (audio_np * 32767).astype(np.int16)
+
+                from scipy.io.wavfile import write
+                write(filename, 16000, audio_np)
+
+                return filename
+
+    return None
 
 def record_chunk(filename="temp.wav", duration=2):
-    audio = sd.rec(int(duration * 44100), samplerate=44100, channels=1)
-    sd.wait()
-    write(filename, 44100, audio)
-    return filename
+    webrtc_ctx = webrtc_streamer(
+        key="live",
+        audio_processor_factory=AudioProcessor,
+        media_stream_constraints={"audio": True, "video": False},
+    )
+
+    if webrtc_ctx.audio_processor:
+        audio_chunks = webrtc_ctx.audio_processor.audio_data
+
+        if len(audio_chunks) > 5:
+            audio_np = np.concatenate(audio_chunks, axis=0)
+            audio_np = audio_np.flatten()
+            audio_np = (audio_np * 32767).astype(np.int16)
+
+            from scipy.io.wavfile import write
+            write(filename, 16000, audio_np)
+            
+            webrtc_ctx.audio_processor.audio_data = []
+
+            return filename
+    
+
+    return None
 
 # ---------------- LOAD MODEL ----------------
 model, expected_features = pickle.load(open("model.pkl", "rb"))
@@ -144,7 +192,6 @@ mode = st.sidebar.radio(
 if "running" not in st.session_state:
     st.session_state.running = False
 
-audio_path = None
 
 # ---------------- MODE ----------------
 if mode == "Upload Audio":
@@ -152,25 +199,49 @@ if mode == "Upload Audio":
     if uploaded_file:
         with open("temp.wav", "wb") as f:
             f.write(uploaded_file.read())
-        audio_path = "temp.wav"
+        st.session_state.audio_path = "temp.wav"
 
 elif mode == "Record Audio":
-    if st.button("Record Audio"):
-        audio_path = record_audio()
-        st.audio(audio_path)
+    with st.expander("ℹ️ Instructions"):    
+        st.markdown("""
+        ### 🎤 How to Record
+        1. Click **START** in the mic box  
+        2. Speak clearly for a few seconds  
+        3. Click **Stop Recording**  
+        4. Then click **STOP** in the mic box  
+        """)     
+
+    audio_file = record_audio()
+    
+    if audio_file:
+        st.session_state.audio_path = audio_file
+        st.audio(audio_file)    
 
 elif mode == "Live Detection":
+    with st.expander("ℹ️ Instructions"):    
+        st.markdown("""
+        ### 🔴 Live Detection Instructions
+        1. Click **Start Live**  
+        2. Click **START** in the mic box  
+        3. Speak continuously  
+        4. System will auto-analyze every few seconds  
+        5. Click **Stop Live** when done  
+        """)    
+
     col1, col2 = st.columns(2)
     if col1.button("Start Live"):
         st.session_state.running = True
-    if col2.button("Stop"):
+    if col2.button("Stop Live"):
         st.session_state.running = False
 
 # ---------------- LIVE ----------------
 if st.session_state.running:
     st.warning("LIVE DETECTION ACTIVE")
-    audio_path = record_chunk()
-    st.audio(audio_path)
+    audio_file = record_chunk()
+
+    if audio_file:
+        st.session_state.audio_path = audio_file
+        st.audio(audio_file)
 
 st.markdown("""
 <div style="
@@ -189,7 +260,8 @@ Scanning incoming audio stream...
 """, unsafe_allow_html=True)
 
 # ---------------- PROCESS ----------------
-if audio_path:
+if st.session_state.audio_path is not None:
+    audio_path = st.session_state.audio_path
 
     st.markdown("### <i data-feather='activity'></i> Audio Analysis", unsafe_allow_html=True)
     st.markdown("<script>feather.replace()</script>", unsafe_allow_html=True)
@@ -245,6 +317,8 @@ if audio_path:
     df = pd.DataFrame([new_data])
     df.to_csv(HISTORY_FILE, mode='a', header=False, index=False)    
     
+    st.session_state.audio_path = None
+
     st.markdown("### 🖥️ Threat Logs")
 
     st.code(f"""
@@ -296,7 +370,7 @@ st.markdown("## 🗂️ Threat Logs")
 
 df = pd.read_csv(HISTORY_FILE)
 
-st.dataframe(df.tail(10), use_container_width=True)
+st.dataframe(df.tail(10), width="stretch")
 
 
 # -------- THREAT GRAPH --------
