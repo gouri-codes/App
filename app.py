@@ -78,6 +78,7 @@ class AudioProcessor(AudioProcessorBase):
 
     def recv(self, frame: av.AudioFrame):
         self.audio_data.append(frame.to_ndarray())
+        print("Receiving audio frame")
         return frame
 
 # ---------------- FUNCTIONS ----------------
